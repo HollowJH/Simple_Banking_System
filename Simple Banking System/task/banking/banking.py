@@ -1,16 +1,26 @@
-import random
+from random import randint
 issued_cards = set()
 accounts = []
 logged = [0, 0]
 
 
 def new_card():
-    card = "400000" + str(random.randint(1000000000, 9999999999))
-    if card not in issued_cards:
+    card = "400000" + f"{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}" \
+                      f"{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}"
+    if card not in issued_cards and luhn(card):
         issued_cards.add(card)
         return card
     else:
         return new_card()
+
+
+def luhn(card):
+    last_digit = card[-1]
+    card = card[:-1]
+    card = [str(int(card[i]) * 2) if (i+1) % 2 == 1 else card[i] for i in range(len(card))]
+    card = [str(int(card[i]) - 9) if int(card[i]) > 9 else card[i] for i in range(len(card))] + [last_digit]
+    m10 = sum(list(map(int, card)))
+    return m10 % 10 == 0
 
 
 def menu():
@@ -20,7 +30,7 @@ def menu():
 0. Exit""")
     option = input()
     if option == "1":
-        x = Account()
+        _ = Account()
         print()
         print("Your card has been created")
         print(f"Your card number:\n{accounts[-1].card}")
@@ -66,7 +76,7 @@ def log_menu():
 class Account:
     def __init__(self):
         self.card = new_card()
-        self.pin = str(random.randint(1000, 9999))
+        self.pin = f"{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}"
         self.balance = 0
         accounts.append(self)
 
