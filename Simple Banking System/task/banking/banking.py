@@ -1,13 +1,20 @@
 from random import randint
+import sqlite3
+
+conn = sqlite3.connect("./card.s3db")
+cur = conn.cursor()
+cur.execute("CREATE TABLE IF NOT EXISTS card (id INTEGER, number TEXT, pin TEXT, balance INTEGER DEFAULT 0)")
+
 issued_cards = set()
-accounts = []
+accounts = cur.execute("SELECT id, number, pin, balance FROM card").fetchall()
 logged = [0, 0]
+pipe = []
 
 
 def new_card():
     card = "400000" + f"{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}" \
                       f"{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}"
-    if card not in issued_cards and luhn(card):
+    if card not in issued_cards and luhn(card) and len(card) == 16:
         issued_cards.add(card)
         return card
     else:
@@ -33,15 +40,15 @@ def menu():
         _ = Account()
         print()
         print("Your card has been created")
-        print(f"Your card number:\n{accounts[-1].card}")
-        print(f"Your card PIN:\n{accounts[-1].pin}\n")
+        print(f"Your card number:\n{accounts[-1][1]}")
+        print(f"Your card PIN:\n{accounts[-1][2]}\n")
     elif option == "2":
         print()
         log_num = input("Enter your card number:\n")
         log_pin = input("Enter your PIN:\n")
         for i in accounts:
-            if i.card == log_num:
-                if i.pin == log_pin:
+            if i[1] == log_num:
+                if i[2] == log_pin:
                     logged = [1, i]
                     print("\nYou have successfully logged in!\n")
                     return None
@@ -62,7 +69,7 @@ def log_menu():
     option = input()
 
     if option == "1":
-        print(f"\nBalance = {logged[1].balance}\n")
+        print(f"\nBalance = {logged[1][-1]}\n")
     elif option == "2":
         logged = [0, 0]
         print("\nYou have successfully logged out!\n")
@@ -75,10 +82,14 @@ def log_menu():
 
 class Account:
     def __init__(self):
+        global accounts
+
         self.card = new_card()
-        self.pin = f"{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}{randint(0, 9)}"
+        self.pin = f"{randint(1000, 9999)}"
         self.balance = 0
-        accounts.append(self)
+        cur.execute(f"INSERT INTO card VALUES ({len(accounts) + 1}, {self.card}, {self.pin}, {self.balance})")
+        accounts.append(cur.execute("SELECT id, number, pin, balance FROM card").fetchall()[-1])
+        conn.commit()
 
 
 while logged[0] != 3:
