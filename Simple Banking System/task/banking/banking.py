@@ -49,7 +49,7 @@ def menu():
         for i in accounts:
             if i[1] == log_num:
                 if i[2] == log_pin:
-                    logged = [1, i]
+                    logged = [1, i, log_num]
                     print("\nYou have successfully logged in!\n")
                     return None
         print("\nWrong card number or PIN!\n")
@@ -64,13 +64,47 @@ def log_menu():
     global logged
 
     print("""1. Balance
-2. Log out
+2. Add income
+3. Do transfer
+4. Close account
+5. Log out
 0. Exit""")
     option = input()
 
+    balance = list(cur.execute(f'SELECT balance FROM card WHERE number = {logged[-1]}'))[-1][0]
     if option == "1":
-        print(f"\nBalance = {logged[1][-1]}\n")
+        print(f"\nBalance = {balance}\n")
     elif option == "2":
+        income = int(input("\nEnter income:\n"))
+        cur.execute(f"UPDATE card SET balance = {balance + income} WHERE number = {logged[-1]}")
+        conn.commit()
+        print("Income was added!\n")
+    elif option == "3":
+        print("\nTransfer")
+        transfer = input("Enter card number:\n")
+        if transfer != logged[-1] and " " not in transfer and len(transfer) == 16 and luhn(transfer):
+            if list(cur.execute(f"SELECT number FROM card WHERE number = {transfer}")):
+                amount = int(input("Enter how much money you want to transfer:\n"))
+                if balance >= amount:
+                    receiver_balance = list(cur.execute(f'SELECT balance FROM card WHERE number = {transfer}'))[-1][0]
+                    cur.execute(f"UPDATE card SET balance = {receiver_balance + amount} WHERE number = {transfer}")
+                    cur.execute(f"UPDATE card SET balance = {balance - amount} WHERE number = {logged[-1]}")
+                    conn.commit()
+                    print("Success!\n")
+                else:
+                    print("Not enough money!\n")
+            else:
+                print("Such a card does not exist.\n")
+        elif transfer == logged[-1]:
+            print("You can't transfer money to the same account\n")
+        else:
+            print("Probably you made a mistake in the card number. Please try again!\n")
+    elif option == "4":
+        cur.execute(f"DELETE FROM card WHERE number = {logged[-1]}")
+        conn.commit()
+        print("The account has been closed!")
+        logged = [0, 0]
+    elif option == "5":
         logged = [0, 0]
         print("\nYou have successfully logged out!\n")
     elif option == "0":
